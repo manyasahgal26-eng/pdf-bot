@@ -5,6 +5,8 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.document_loader import load_document
+from app.chunker import chunk_pages
+from app.vector_store import add_chunks, search_chunks
 
 
 app = FastAPI()
@@ -35,9 +37,23 @@ async def upload_file(file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
 
     pages = load_document(str(file_path))
+    chunks = chunk_pages(pages)
+    stored_chunks = add_chunks(chunks, file.filename)
 
     return {
         "filename": file.filename,
         "pages_found": len(pages),
-        "preview": pages[:2],
+        "chunks_found": len(chunks),
+        "stored_chunks": stored_chunks,
+        "preview": chunks[:3],
+    }
+
+
+@app.get("/search")
+def search(question: str):
+    matches = search_chunks(question)
+
+    return {
+        "question": question,
+        "matches": matches,
     }
