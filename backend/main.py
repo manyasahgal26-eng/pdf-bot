@@ -9,6 +9,7 @@ from app.document_loader import load_document
 from app.chunker import chunk_pages
 from app.vector_store import add_chunks, search_chunks
 from app.rag import answer_question
+from app.keyword_extractor import extract_document_terms, save_document_terms
 
 
 app = FastAPI()
@@ -44,6 +45,10 @@ async def upload_file(file: UploadFile = File(...)):
 
     pages = load_document(str(file_path))
     chunks = chunk_pages(pages)
+
+    terms = extract_document_terms(chunks)
+    save_document_terms(file.filename, terms)
+
     stored_chunks = add_chunks(chunks, file.filename)
 
     return {
@@ -51,6 +56,7 @@ async def upload_file(file: UploadFile = File(...)):
         "pages_found": len(pages),
         "chunks_found": len(chunks),
         "stored_chunks": stored_chunks,
+        "terms_found": len(terms),
         "preview": chunks[:3],
     }
 

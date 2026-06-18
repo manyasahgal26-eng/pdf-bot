@@ -33,6 +33,17 @@ def is_relevant(matches: list[dict]) -> bool:
     return best_distance <= MAX_RELEVANCE_DISTANCE
 
 
+def build_source_text(sources: list[dict]) -> str:
+    if not sources:
+        return ""
+
+    best_source = sources[0]
+    filename = best_source.get("filename", "uploaded document")
+    page = best_source.get("page", "unknown")
+
+    return f"Source: {filename}, page {page}"
+
+
 def answer_question(question: str) -> dict:
     matches = search_chunks(question, top_k=5)
 
@@ -48,6 +59,10 @@ def answer_question(question: str) -> dict:
 
     answer = generate_answer(question, context)
     sources = format_sources(matches)
+    source_text = build_source_text(sources)
+
+    if source_text:
+        answer = f"{answer}\n\n{source_text}"
 
     return {
         "answer": answer,

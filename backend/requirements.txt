@@ -7,3 +7,5 @@ chromadb
 sentence-transformers
 transformers
 torch
+rapidfuzz
+scikit-learn
