@@ -35,8 +35,24 @@ def add_chunks(chunks: list[dict], filename: str) -> int:
     return len(chunks)
 
 
-def search_chunks(question: str, top_k: int = 3) -> list[dict]:
-    question_embedding = create_embedding(question)
+def expand_query(question: str) -> str:
+    question_lower = question.lower()
+
+    if any(word in question_lower for word in ["what is", "what are", "define", "meaning"]):
+        return f"{question} definition meaning explanation overview"
+
+    if any(word in question_lower for word in ["how", "explain"]):
+        return f"{question} steps process explanation details"
+
+    if "why" in question_lower:
+        return f"{question} reason cause purpose explanation"
+
+    return question
+
+
+def search_chunks(question: str, top_k: int = 5) -> list[dict]:
+    expanded_question = expand_query(question)
+    question_embedding = create_embedding(expanded_question)
 
     results = collection.query(
         query_embeddings=[question_embedding],

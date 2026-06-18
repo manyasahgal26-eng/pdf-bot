@@ -3,16 +3,22 @@ import shutil
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from app.document_loader import load_document
 from app.chunker import chunk_pages
 from app.vector_store import add_chunks, search_chunks
+from app.rag import answer_question
 
 
 app = FastAPI()
 
 UPLOAD_DIR = Path("uploads")
 UPLOAD_DIR.mkdir(exist_ok=True)
+
+
+class ChatRequest(BaseModel):
+    question: str
 
 
 app.add_middleware(
@@ -56,4 +62,14 @@ def search(question: str):
     return {
         "question": question,
         "matches": matches,
+    }
+
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    result = answer_question(request.question)
+
+    return {
+        "question": request.question,
+        **result,
     }
