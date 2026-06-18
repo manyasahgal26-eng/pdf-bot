@@ -2,6 +2,9 @@ from app.vector_store import search_chunks
 from app.llm import generate_answer
 
 
+MAX_RELEVANCE_DISTANCE = 22
+
+
 def format_sources(matches: list[dict]) -> list[dict]:
     sources = []
 
@@ -18,12 +21,24 @@ def format_sources(matches: list[dict]) -> list[dict]:
     return sources
 
 
+def is_relevant(matches: list[dict]) -> bool:
+    if not matches:
+        return False
+
+    best_distance = matches[0].get("distance")
+
+    if best_distance is None:
+        return False
+
+    return best_distance <= MAX_RELEVANCE_DISTANCE
+
+
 def answer_question(question: str) -> dict:
     matches = search_chunks(question, top_k=5)
 
-    if not matches:
+    if not is_relevant(matches):
         return {
-            "answer": "I could not find relevant information in the uploaded documents.",
+            "answer": "I could not find this in the uploaded document.",
             "sources": [],
             "context": [],
         }
