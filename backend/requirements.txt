@@ -9,3 +9,8 @@ transformers
 torch
 rapidfuzz
 scikit-learn
+requests
+beautifulsoup4
+duckduckgo-search
+groq
+python-dotenv

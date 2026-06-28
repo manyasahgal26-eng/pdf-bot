@@ -4,11 +4,16 @@ __pycache__/
 venv/
 .venv/
 
+# Frontend
+node_modules/
+dist/
+
 # Backend generated files
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/data/chroma/*
 !backend/data/chroma/.gitkeep
+backend/data/audio/*
 
 # Env files
 .env
@@ -16,3 +21,4 @@ backend/data/chroma/*
 # OS/editor
 .DS_Store
 .vscode/
+backend/data/document_terms.json

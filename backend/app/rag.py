@@ -1,5 +1,6 @@
 from app.vector_store import search_chunks
 from app.llm import generate_answer
+from app.web_search import get_web_context
 
 
 MAX_RELEVANCE_DISTANCE = 22
@@ -44,28 +45,51 @@ def build_source_text(sources: list[dict]) -> str:
     return f"Source: {filename}, page {page}"
 
 
-def answer_question(question: str) -> dict:
+def answer_question(question: str, use_web: bool = False) -> dict:
     matches = search_chunks(question, top_k=5)
+    document_sources = format_sources(matches)
 
-    if not is_relevant(matches):
+    document_context_parts = []
+    document_context = ""
+
+    if is_relevant(matches):
+        document_context_parts = [match["text"] for match in matches]
+        document_context = "\n\n".join(document_context_parts)
+
+    web_context = ""
+    web_sources = []
+
+    if use_web:
+        web_result = get_web_context(question)
+        web_context = web_result["context"]
+        web_sources = web_result["sources"]
+
+    if not document_context and not web_context:
         return {
-            "answer": "I could not find this in the uploaded document.",
+            "answer": "I could not find this in the uploaded document or web sources.",
             "sources": [],
+            "web_sources": [],
             "context": [],
         }
 
-    context_parts = [match["text"] for match in matches]
-    context = "\n\n".join(context_parts)
+    combined_context = ""
 
-    answer = generate_answer(question, context)
-    sources = format_sources(matches)
-    source_text = build_source_text(sources)
+    if document_context:
+        combined_context += f"Uploaded document context:\n{document_context}\n\n"
+
+    if web_context:
+        combined_context += f"Web context:\n{web_context}\n\n"
+
+    answer = generate_answer(question, combined_context)
+
+    source_text = build_source_text(document_sources)
 
     if source_text:
         answer = f"{answer}\n\n{source_text}"
 
     return {
         "answer": answer,
-        "sources": sources,
-        "context": context_parts,
+        "sources": document_sources,
+        "web_sources": web_sources,
+        "context": document_context_parts,
     }

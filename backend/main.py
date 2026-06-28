@@ -4,6 +4,8 @@ import shutil
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.responses import FileResponse
+from app.tts import text_to_speech
 
 from app.document_loader import load_document
 from app.chunker import chunk_pages
@@ -20,6 +22,10 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 
 class ChatRequest(BaseModel):
     question: str
+    use_web: bool = False
+class TTSRequest(BaseModel):
+    text: str
+    language: str = "auto"
 
 
 app.add_middleware(
@@ -59,7 +65,18 @@ async def upload_file(file: UploadFile = File(...)):
         "terms_found": len(terms),
         "preview": chunks[:3],
     }
+@app.post("/text-to-speech")
+async def create_speech(request: TTSRequest):
+    audio_path = await text_to_speech(
+        text=request.text,
+        language=request.language,
+    )
 
+    return FileResponse(
+        audio_path,
+        media_type="audio/mpeg",
+        filename="answer.mp3",
+    )
 
 @app.get("/search")
 def search(question: str):
@@ -73,9 +90,13 @@ def search(question: str):
 
 @app.post("/chat")
 def chat(request: ChatRequest):
-    result = answer_question(request.question)
+    result = answer_question(
+        question=request.question,
+        use_web=request.use_web,
+    )
 
     return {
         "question": request.question,
+        "use_web": request.use_web,
         **result,
     }
