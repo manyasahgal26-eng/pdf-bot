@@ -107,9 +107,11 @@ def answer_question(
     question: str,
     use_web: bool = False,
     language: str = "auto",
+    filename: str = None,
 ) -> dict:
     search_query = rewrite_query_for_search(question)
-    raw_matches = search_chunks(search_query, top_k=12)
+    raw_matches = search_chunks(search_query, filename=filename, top_k=12)
+
     matches = rerank_matches(search_query, raw_matches)
 
     document_context = build_document_context(matches)

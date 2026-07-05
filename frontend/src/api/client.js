@@ -16,7 +16,7 @@ export async function uploadDocument(file) {
   return response.json();
 }
 
-export async function askQuestion(question, useWeb = false, language = "auto") {
+export async function askQuestion(question, useWeb = false, language = "auto", filename = null) {
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: "POST",
     headers: {
@@ -26,6 +26,7 @@ export async function askQuestion(question, useWeb = false, language = "auto") {
       question,
       use_web: useWeb,
       language,
+      filename,
     }),
   });
 
@@ -36,6 +37,7 @@ export async function askQuestion(question, useWeb = false, language = "auto") {
 
   return response.json();
 }
+
 
 export async function textToSpeech(text, language = "auto") {
   const response = await fetch(`${API_BASE_URL}/text-to-speech`, {

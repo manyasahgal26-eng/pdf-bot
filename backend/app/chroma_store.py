@@ -50,14 +50,19 @@ def expand_query(question: str) -> str:
     return question
 
 
-def search_chunks(question: str, top_k: int = 5) -> list[dict]:
+def search_chunks(question: str, filename: str = None, top_k: int = 5) -> list[dict]:
     expanded_question = expand_query(question)
     question_embedding = create_embedding(expanded_question)
 
-    results = collection.query(
-        query_embeddings=[question_embedding],
-        n_results=top_k,
-    )
+    query_args = {
+        "query_embeddings": [question_embedding],
+        "n_results": top_k,
+    }
+    if filename:
+        query_args["where"] = {"filename": filename}
+
+    results = collection.query(**query_args)
+
 
     matches = []
 

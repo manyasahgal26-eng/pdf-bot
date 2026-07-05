@@ -91,13 +91,14 @@ function App() {
     setIsAnswering(true);
 
     try {
-      const result = await askQuestion(trimmedQuestion, false, language);
+      const result = await askQuestion(trimmedQuestion, false, language, uploadInfo?.filename);
 
       const botMessage = {
         role: "bot",
         text: result.answer,
         sources: result.sources || [],
       };
+
 
       setMessages((current) => [...current, botMessage]);
       speakAnswer(result.answer);

@@ -24,6 +24,7 @@ class ChatRequest(BaseModel):
     question: str
     use_web: bool = False
     language: str = "english"
+    filename: str = None
 
 
 class TTSRequest(BaseModel):
@@ -97,11 +98,13 @@ def chat(request: ChatRequest):
         question=request.question,
         use_web=request.use_web,
         language=request.language,
+        filename=request.filename,
     )
 
     return {
         "question": request.question,
         "use_web": request.use_web,
         "language": request.language,
+        "filename": request.filename,
         **result,
     }
