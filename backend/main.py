@@ -23,9 +23,12 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 class ChatRequest(BaseModel):
     question: str
     use_web: bool = False
+    language: str = "english"
+
+
 class TTSRequest(BaseModel):
     text: str
-    language: str = "auto"
+    language: str = "english"
 
 
 app.add_middleware(
@@ -93,10 +96,12 @@ def chat(request: ChatRequest):
     result = answer_question(
         question=request.question,
         use_web=request.use_web,
+        language=request.language,
     )
 
     return {
         "question": request.question,
         "use_web": request.use_web,
+        "language": request.language,
         **result,
     }

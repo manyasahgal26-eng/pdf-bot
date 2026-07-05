@@ -1,6 +1,10 @@
 import requests
 from bs4 import BeautifulSoup
-from duckduckgo_search import DDGS
+
+try:
+    from ddgs import DDGS
+except ModuleNotFoundError:
+    from duckduckgo_search import DDGS
 
 
 def search_web(query: str, max_results: int = 3) -> list[dict]:

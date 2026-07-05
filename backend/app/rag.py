@@ -1,9 +1,64 @@
+from app.llm import generate_answer, rewrite_query_for_search
 from app.vector_store import search_chunks
-from app.llm import generate_answer
 from app.web_search import get_web_context
 
 
-MAX_RELEVANCE_DISTANCE = 22
+def is_question_bank_chunk(text: str) -> bool:
+    text_lower = text.lower()
+
+    repeated_question_phrases = (
+        text_lower.count("explain the concept")
+        + text_lower.count("with example")
+        + text_lower.count("in operating system")
+    )
+
+    numbered_items = sum(
+        1
+        for token in text_lower.replace("\n", " ").split()
+        if token.rstrip(".").isdigit()
+    )
+
+    return repeated_question_phrases >= 6 or numbered_items >= 18
+
+
+def rerank_matches(question: str, matches: list[dict]) -> list[dict]:
+    query_terms = [
+        term
+        for term in question.lower().replace("-", " ").split()
+        if len(term) > 2
+    ]
+
+    scored_matches = []
+
+    for match in matches:
+        text = match["text"]
+        text_lower = text.lower()
+
+        if is_question_bank_chunk(text):
+            continue
+
+        score = 0.0
+
+        for term in query_terms:
+            score += text_lower.count(term) * 4
+
+        if any(cue in text_lower for cue in [" is a ", " refers to ", " is used ", " used to "]):
+            score += 8
+
+        if any(cue in text_lower for cue in ["controls", "synchronization", "mutual exclusion", "shared"]):
+            score += 4
+
+        distance = match.get("distance")
+        if isinstance(distance, (int, float)):
+            score -= distance * 0.05
+
+        scored_matches.append((score, match))
+
+    if not scored_matches:
+        return matches[:4]
+
+    scored_matches.sort(key=lambda item: item[0], reverse=True)
+    return [match for score, match in scored_matches[:4]]
 
 
 def format_sources(matches: list[dict]) -> list[dict]:
@@ -22,43 +77,50 @@ def format_sources(matches: list[dict]) -> list[dict]:
     return sources
 
 
-def is_relevant(matches: list[dict]) -> bool:
-    if not matches:
-        return False
-
-    best_distance = matches[0].get("distance")
-
-    if best_distance is None:
-        return False
-
-    return best_distance <= MAX_RELEVANCE_DISTANCE
-
-
 def build_source_text(sources: list[dict]) -> str:
     if not sources:
         return ""
 
     best_source = sources[0]
-    filename = best_source.get("filename", "uploaded document")
     page = best_source.get("page", "unknown")
 
-    return f"Source: {filename}, page {page}"
+    return f"Page {page}"
 
 
-def answer_question(question: str, use_web: bool = False) -> dict:
-    matches = search_chunks(question, top_k=5)
+def build_document_context(matches: list[dict]) -> str:
+    context_parts = []
+
+    for index, match in enumerate(matches, start=1):
+        metadata = match["metadata"]
+        filename = metadata.get("filename", "uploaded document")
+        page = metadata.get("page", "unknown")
+        text = match["text"]
+
+        context_parts.append(
+            f"[DOC {index} | {filename}, page {page}]\n{text}"
+        )
+
+    return "\n\n".join(context_parts)
+
+
+def answer_question(
+    question: str,
+    use_web: bool = False,
+    language: str = "auto",
+) -> dict:
+    search_query = rewrite_query_for_search(question)
+    raw_matches = search_chunks(search_query, top_k=12)
+    matches = rerank_matches(search_query, raw_matches)
+
+    document_context = build_document_context(matches)
+    document_context_parts = [match["text"] for match in matches]
     document_sources = format_sources(matches)
-
-    document_context_parts = []
-    document_context = ""
-
-    if is_relevant(matches):
-        document_context_parts = [match["text"] for match in matches]
-        document_context = "\n\n".join(document_context_parts)
 
     web_context = ""
     web_sources = []
 
+    # The frontend no longer needs a web toggle, but keeping this parameter lets
+    # older requests work. When enabled, web context supports the document answer.
     if use_web:
         web_result = get_web_context(question)
         web_context = web_result["context"]
@@ -66,7 +128,7 @@ def answer_question(question: str, use_web: bool = False) -> dict:
 
     if not document_context and not web_context:
         return {
-            "answer": "I could not find this in the uploaded document or web sources.",
+            "answer": "I could not find this in the uploaded document or reliable web sources.",
             "sources": [],
             "web_sources": [],
             "context": [],
@@ -80,11 +142,15 @@ def answer_question(question: str, use_web: bool = False) -> dict:
     if web_context:
         combined_context += f"Web context:\n{web_context}\n\n"
 
-    answer = generate_answer(question, combined_context)
+    answer = generate_answer(question, combined_context, language)
 
     source_text = build_source_text(document_sources)
 
-    if source_text:
+    if (
+        source_text
+        and "I could not find this" not in answer
+        and source_text not in answer
+    ):
         answer = f"{answer}\n\n{source_text}"
 
     return {

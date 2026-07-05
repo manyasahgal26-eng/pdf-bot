@@ -11,8 +11,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [isAnswering, setIsAnswering] = useState(false);
   const [error, setError] = useState("");
-  const [useWeb, setUseWeb] = useState(false);
-  const [language, setLanguage] = useState("auto");
+  
+  const [language, setLanguage] = useState("english");
   const [voiceOutput, setVoiceOutput] = useState(false);
   const audioRef = useRef(null);
 
@@ -91,7 +91,7 @@ function App() {
     setIsAnswering(true);
 
     try {
-      const result = await askQuestion(trimmedQuestion, useWeb, language);
+      const result = await askQuestion(trimmedQuestion, false, language);
 
       const botMessage = {
         role: "bot",
@@ -164,9 +164,7 @@ function App() {
               {message.sources?.length > 0 && (
                 <div className="sources">
                   {message.sources.slice(0, 2).map((source, sourceIndex) => (
-                    <span key={sourceIndex}>
-                      {source.filename}, page {source.page}
-                    </span>
+                    <span key={sourceIndex}>Page {source.page}</span>
                   ))}
                 </div>
               )}
@@ -182,15 +180,7 @@ function App() {
 
         <div className="web-toggle">
           <div className="web-toggle-controls">
-            <label>
-              <input
-                type="checkbox"
-                checked={useWeb}
-                onChange={(event) => setUseWeb(event.target.checked)}
-              />
-              Use web search
-            </label>
-
+            
             <label>
               <input
                 type="checkbox"
@@ -205,18 +195,19 @@ function App() {
             </button>
 
             <select
-              value={language}
-              onChange={(event) => setLanguage(event.target.value)}
-            >
-              <option value="auto">Auto</option>
-              <option value="english">English</option>
-              <option value="hindi">Hindi</option>
-              <option value="hinglish">Hinglish</option>
-              <option value="punjabi">Punjabi</option>
-              <option value="roman_punjabi">Roman Punjabi</option>
-              <option value="french">French</option>
-              <option value="spanish">Spanish</option>
-            </select>
+  value={language}
+  onChange={(event) => {
+    setLanguage(event.target.value);
+  }}
+>
+  <option value="english">English</option>
+  <option value="hindi">Hindi</option>
+  <option value="hinglish">Hinglish</option>
+  <option value="punjabi">Punjabi</option>
+  <option value="roman_punjabi">Roman Punjabi</option>
+  <option value="french">French</option>
+  <option value="spanish">Spanish</option>
+</select>
           </div>
         </div>
 

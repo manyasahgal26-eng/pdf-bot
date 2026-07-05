@@ -11,6 +11,7 @@ rapidfuzz
 scikit-learn
 requests
 beautifulsoup4
-duckduckgo-search
+ddgs
 groq
 python-dotenv
+edge-tts
