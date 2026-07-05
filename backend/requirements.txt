@@ -3,10 +3,6 @@ uvicorn
 python-multipart
 pypdf
 python-docx
-chromadb
-sentence-transformers
-transformers
-torch
 rapidfuzz
 scikit-learn
 requests

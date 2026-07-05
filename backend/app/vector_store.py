@@ -1,36 +1,29 @@
-import chromadb
+import math
 
-from app.embeddings import create_embeddings, create_embedding
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 
-client = chromadb.PersistentClient(path="data/chroma")
-collection = client.get_or_create_collection(name="documents")
+stored_chunks: list[dict] = []
 
 
 def add_chunks(chunks: list[dict], filename: str) -> int:
     if not chunks:
         return 0
 
-    texts = [chunk["text"] for chunk in chunks]
-    ids = [f"{filename}-{chunk['id']}" for chunk in chunks]
+    # Keep uploaded document chunks in memory. This is lightweight enough for
+    # Render free tier and avoids loading Torch/SentenceTransformers.
+    stored_chunks.clear()
 
-    metadatas = [
-        {
-            "filename": filename,
-            "page": chunk["page"],
-            "chunk_index": chunk["chunk_index"],
-        }
-        for chunk in chunks
-    ]
-
-    embeddings = create_embeddings(texts)
-
-    collection.add(
-        ids=ids,
-        documents=texts,
-        embeddings=embeddings,
-        metadatas=metadatas,
-    )
+    for chunk in chunks:
+        stored_chunks.append({
+            "text": chunk["text"],
+            "metadata": {
+                "filename": filename,
+                "page": chunk["page"],
+                "chunk_index": chunk["chunk_index"],
+            },
+        })
 
     return len(chunks)
 
@@ -51,25 +44,39 @@ def expand_query(question: str) -> str:
 
 
 def search_chunks(question: str, top_k: int = 5) -> list[dict]:
-    expanded_question = expand_query(question)
-    question_embedding = create_embedding(expanded_question)
+    if not stored_chunks:
+        return []
 
-    results = collection.query(
-        query_embeddings=[question_embedding],
-        n_results=top_k,
+    expanded_question = expand_query(question)
+    documents = [chunk["text"] for chunk in stored_chunks]
+
+    vectorizer = TfidfVectorizer(
+        stop_words="english",
+        ngram_range=(1, 2),
+        max_features=5000,
     )
+
+    matrix = vectorizer.fit_transform(documents + [expanded_question])
+    document_matrix = matrix[:-1]
+    query_vector = matrix[-1]
+
+    similarities = cosine_similarity(query_vector, document_matrix)[0]
+    ranked_indexes = similarities.argsort()[::-1][:top_k]
 
     matches = []
 
-    documents = results.get("documents", [[]])[0]
-    metadatas = results.get("metadatas", [[]])[0]
-    distances = results.get("distances", [[]])[0]
+    for index in ranked_indexes:
+        similarity = float(similarities[index])
 
-    for document, metadata, distance in zip(documents, metadatas, distances):
+        if math.isclose(similarity, 0.0):
+            continue
+
+        chunk = stored_chunks[int(index)]
+
         matches.append({
-            "text": document,
-            "metadata": metadata,
-            "distance": distance,
+            "text": chunk["text"],
+            "metadata": chunk["metadata"],
+            "distance": 1 - similarity,
         })
 
     return matches
