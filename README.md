@@ -1,20 +1,16 @@
-# DocuRAG 📄🤖
+DocuRAG 
 
 DocuRAG is a modern, responsive document-based Question-Answering (RAG) system. It allows users to upload PDF or DOCX documents, automatically index them, and ask questions through an interactive chat interface. 
 
 The system features session-based document isolation, local caching to prevent data loss on server restarts, multilingual support, web-search fallback, and Text-to-Speech (TTS) audio answers.
 
----
 
-## 🚀 Live Demo & Deployment
-* **Live Web App (Frontend):** *[Insert Vercel Deployment URL here]*
-* **Backend API Server:** *[Insert Render Deployment URL here]*
 
-*(We recommend putting your deployed Vercel and Render links here so users can try it out instantly!)*
+Live Demo & Deployment
+* **Live Web App (Frontend):https://docurag-blue.vercel.app/ 
+  Backend API Server:https://docurag-backend.onrender.com/
 
----
-
-## ✨ Features
+ Features
 
 - **Isolated Sessions:** Different users chatting from different devices get isolated document contexts. There is no mixing of document contents or chats.
 - **Data Persistence:** Chunk indexes are cached locally on disk (`data/chunks/`). If the server goes to sleep (e.g. Render Free Tier) or restarts, document data is automatically reloaded on demand without requiring re-upload.
@@ -92,6 +88,6 @@ Make sure you have **Node.js** (v18+) and **Python** (3.10+) installed.
 
 ---
 
-## 📄 Supported Formats
+ Supported Formats
 * **PDF** (`.pdf`)
 * **Word Documents** (`.docx`)
