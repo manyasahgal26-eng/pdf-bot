@@ -208,19 +208,9 @@ This report summarizes the performance evaluation of the **Routed Pipeline** vs.
 | **Average Routed Score** (Dynamic Routing) | **{avg_routed_score:.2f} / 5** |
 | **Average Score Improvement** | **{avg_routed_score - avg_baseline_score:+.2f}** |
 
+
 ---
 
-## 🔍 Detailed Results Table
-
-| ID | Question | Expected Category | Routed Category | Correct Route? | Baseline Score | Routed Score |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-"""
-    for r in results:
-        check = "✅" if r["is_routing_correct"] else "❌"
-        markdown_content += f"| {r['index']} | {r['question']} | `{r['expected_category']}` | `{r['predicted_category']}` | {check} | {r['baseline_score']}/5 | {r['routed_score']}/5 |\n"
-        
-    markdown_content += f"""
----
 
 ## 📝 Observations & Analysis
 
