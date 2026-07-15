@@ -23,7 +23,7 @@ Live Demo & Deployment
 
 ---
 
-## 🛠️ Architecture & Tech Stack
+## Architecture & Tech Stack
 
 - **Frontend:** React, Vite, Lucide Icons, Vanilla CSS
 - **Backend:** FastAPI (Python), PyPDF, Python-Docx, Scikit-Learn, ChromaDB
@@ -32,7 +32,7 @@ Live Demo & Deployment
 
 ---
 
-## 📦 Local Setup & Installation
+## Local Setup & Installation
 
 ### Prerequisite
 Make sure you have **Node.js** (v18+) and **Python** (3.10+) installed.
