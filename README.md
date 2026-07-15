@@ -1,3 +1,7 @@
+
+
+https://github.com/user-attachments/assets/07399395-f732-4591-90aa-935fa4c1a95a
+
 DocuRAG 
 
 DocuRAG is a modern, responsive document-based Question-Answering (RAG) system. It allows users to upload PDF or DOCX documents, automatically index them, and ask questions through an interactive chat interface. 
