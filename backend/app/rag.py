@@ -1,4 +1,4 @@
-from app.llm import generate_answer, rewrite_query_for_search
+from app.llm import generate_answer, rewrite_query_for_search, classify_query, generate_computation_answer, generate_web_answer
 from app.vector_store import search_chunks
 from app.web_search import get_web_context
 
@@ -109,55 +109,87 @@ def answer_question(
     language: str = "auto",
     filename: str = None,
 ) -> dict:
-    search_query = rewrite_query_for_search(question)
-    raw_matches = search_chunks(search_query, filename=filename, top_k=12)
+    # 1. Classify the query intent
+    routing_decision = classify_query(question)
 
-    matches = rerank_matches(search_query, raw_matches)
+    if routing_decision == "computation":
+        answer = generate_computation_answer(question)
+        return {
+            "answer": answer,
+            "sources": [],
+            "web_sources": [],
+            "context": [],
+            "routing_decision": "computation",
+        }
 
-    document_context = build_document_context(matches)
-    document_context_parts = [match["text"] for match in matches]
-    document_sources = format_sources(matches)
-
-    web_context = ""
-    web_sources = []
-
-    # The frontend no longer needs a web toggle, but keeping this parameter lets
-    # older requests work. When enabled, web context supports the document answer.
-    if use_web:
+    elif routing_decision == "web_search":
         web_result = get_web_context(question)
         web_context = web_result["context"]
         web_sources = web_result["sources"]
 
-    if not document_context and not web_context:
+        if not web_context:
+            answer = "I could not find this in the uploaded document or reliable web sources."
+        else:
+            answer = generate_web_answer(question, web_context, language)
+
         return {
-            "answer": "I could not find this in the uploaded document or reliable web sources.",
+            "answer": answer,
             "sources": [],
-            "web_sources": [],
+            "web_sources": web_sources,
             "context": [],
+            "routing_decision": "web_search",
         }
 
-    combined_context = ""
+    else:
+        # Document Retrieval Route (Default)
+        search_query = rewrite_query_for_search(question)
+        raw_matches = search_chunks(search_query, filename=filename, top_k=12)
+        matches = rerank_matches(search_query, raw_matches)
 
-    if document_context:
-        combined_context += f"Uploaded document context:\n{document_context}\n\n"
+        document_context = build_document_context(matches)
+        document_context_parts = [match["text"] for match in matches]
+        document_sources = format_sources(matches)
 
-    if web_context:
-        combined_context += f"Web context:\n{web_context}\n\n"
+        web_context = ""
+        web_sources = []
 
-    answer = generate_answer(question, combined_context, language)
+        if use_web:
+            web_result = get_web_context(question)
+            web_context = web_result["context"]
+            web_sources = web_result["sources"]
 
-    source_text = build_source_text(document_sources)
+        if not document_context and not web_context:
+            return {
+                "answer": "I could not find this in the uploaded document or reliable web sources.",
+                "sources": [],
+                "web_sources": [],
+                "context": [],
+                "routing_decision": "document_retrieval",
+            }
 
-    if (
-        source_text
-        and "I could not find this" not in answer
-        and source_text not in answer
-    ):
-        answer = f"{answer}\n\n{source_text}"
+        combined_context = ""
 
-    return {
-        "answer": answer,
-        "sources": document_sources,
-        "web_sources": web_sources,
-        "context": document_context_parts,
-    }
+        if document_context:
+            combined_context += f"Uploaded document context:\n{document_context}\n\n"
+
+        if web_context:
+            combined_context += f"Web context:\n{web_context}\n\n"
+
+        answer = generate_answer(question, combined_context, language)
+        source_text = build_source_text(document_sources)
+
+        if (
+            source_text
+            and "I could not find this" not in answer
+            and source_text not in answer
+        ):
+            answer = f"{answer}\n\n{source_text}"
+
+        return {
+            "answer": answer,
+            "sources": document_sources,
+            "web_sources": web_sources,
+            "context": document_context_parts,
+            "routing_decision": "document_retrieval",
+        }
+
